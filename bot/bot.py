@@ -140,6 +140,7 @@ async def stop(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         return
     total_buy_in = core.buy_in.calculate_total_buy_in(chat_id)
     if not total_buy_in:
+        core.game.finish_games(chat_id)
         await update.message.reply_text('Катка закончилась, никто не заходил')
         return
     total_cash_out = core.cash_out.calculate_total_cash_out(chat_id)
