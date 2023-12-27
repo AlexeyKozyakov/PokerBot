@@ -128,13 +128,12 @@ async def stop(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
             message += f'{player}\n'
         await update.message.reply_text(message)
         return
-    bank_diff = core.game.calculate_bank_size(chat_id)
-    if bank_diff != 0:
+    bank_size = core.game.calculate_bank_size(chat_id)
+    if bank_size != 0:
         message = 'Банк не сходится\n'
-        message += f'Вход больше выхода на {bank_diff}\n' if bank_diff > 0 else f'Вход меньше выхода на {-bank_diff}\n'
+        message += f'Вход больше выхода на {bank_size}\n' if bank_size > 0 else f'Вход меньше выхода на {-bank_size}\n'
         total_buy_in = core.buy_in.calculate_total_buy_in(chat_id)
         total_cash_out = core.cash_out.calculate_total_cash_out(chat_id)
-        bank_size = core.game.calculate_bank_size(chat_id)
         message += __format_summary(total_buy_in, total_cash_out, bank_size)
         await update.message.reply_text(message)
         return
