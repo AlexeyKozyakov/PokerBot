@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 
 from core.buy_in import calculate_total_buy_in
@@ -17,10 +19,25 @@ def finish_games(chat_id: str) -> None:
     Game.update(is_finished=True).where(Game.chat_id == chat_id).execute()
 
 
-def calculate_profit(chat_id: str, user: str) -> int:
-    total_cash_out = calculate_total_cash_out(chat_id, user)
-    total_buy_in = calculate_total_buy_in(chat_id, [user])[user]
-    return total_cash_out - total_buy_in
+def calculate_profit(chat_id: str, user: str = None) -> int | dict[str, int]:
+    if user:
+        total_cash_out = calculate_total_cash_out(chat_id, user)
+        total_buy_in = calculate_total_buy_in(chat_id, [user])[user]
+        return total_cash_out - total_buy_in
+    game = Game.get(chat_id=chat_id, is_finished=False)
+    profits = {}
+
+    def update_profit(profit_user, diff):
+        if profit_user not in profits:
+            profits[profit_user] = 0
+        profits[profit_user] += diff
+
+    for cash_out in game.cash_outs:
+        update_profit(cash_out.user, cash_out.amount)
+    for buy_in in game.buy_ins:
+        update_profit(buy_in.user, -buy_in.amount)
+
+    return profits
 
 
 def calculate_active_players(chat_id: str) -> list[str]:
@@ -53,18 +70,7 @@ def calculate_bank_size(chat_id: str) -> int:
 
 
 def calculate_money_transfers(chat_id: str) -> list[dict]:
-    game = Game.get(chat_id=chat_id, is_finished=False)
-    profits = {}
-
-    def update_profit(user, diff):
-        if user not in profits:
-            profits[user] = 0
-        profits[user] += diff
-
-    for cash_out in game.cash_outs:
-        update_profit(cash_out.user, cash_out.amount)
-    for buy_in in game.buy_ins:
-        update_profit(buy_in.user, -buy_in.amount)
+    profits = calculate_profit(chat_id)
 
     if not profits:
         return []

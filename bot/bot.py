@@ -41,11 +41,13 @@ def __format_summary(total_buy_in: dict[str, int], total_cash_out: dict[str, int
     if bank_size != 0:
         message += f'Банк {bank_size}\n'
     message += '\nВход:\n'
-    for user, total in total_buy_in.items():
+    total_buy_in_sorted = sorted(total_buy_in.items(), key=lambda item: item[1], reverse=True)
+    for user, total in total_buy_in_sorted:
         message += f'{user} {total}\n'
     if total_cash_out:
         message += '\nВыход:\n'
-        for user, total in total_cash_out.items():
+        total_cash_out_sorted = sorted(total_cash_out.items(), key=lambda item: item[1], reverse=True)
+        for user, total in total_cash_out_sorted:
             message += f'{user} {total}\n'
     return message
 
@@ -143,16 +145,18 @@ async def stop(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text('Катка закончилась, никто не заходил')
         return
     total_cash_out = core.cash_out.calculate_total_cash_out(chat_id)
-    money_transfers = core.game.calculate_money_transfers(chat_id)
-    core.game.finish_games(chat_id)
     message = 'Катка закончилась, банк сходится\n'
     message += __format_summary(total_buy_in, total_cash_out)
     message += '\nПрофит:\n'
-    for user in total_cash_out:
-        message += f'{user} {total_cash_out[user] - total_buy_in[user]}\n'
+    profits = core.game.calculate_profit(chat_id)
+    profits_sorted = sorted(profits.items(), key=lambda item: item[1], reverse=True)
+    for user, profit in profits_sorted:
+        message += f'{user} {profit}\n'
     message += '\nПереводы:\n'
+    money_transfers = core.game.calculate_money_transfers(chat_id)
     for transfer in money_transfers:
         message += f'{transfer["from"]} -> {transfer["to"]}: {transfer["amount"]}\n'
+    core.game.finish_games(chat_id)
     await update.message.reply_text(message)
 
 

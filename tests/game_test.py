@@ -27,8 +27,18 @@ class GamesTestCase(BaseTestCase):
         finish_games(CHAT_ID_1)
         self.assertFalse(has_active_games(CHAT_ID_1))
 
-    def test_calculate_profit(self):
+    def test_calculate_profit_for_specific_user(self):
         self.assertEqual(1250, calculate_profit(CHAT_ID_1, 'user2'))
+
+    def test_calculate_profit_for_all_users(self):
+        self.assertEqual(
+            {
+                'user1': -1500,
+                'user2': 1250,
+                'user3': 250
+            },
+            calculate_profit(CHAT_ID_1)
+        )
 
     def test_calculate_active_players(self):
         self.__init_second_game()
