@@ -1,8 +1,8 @@
 import os
 import re
 
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, InlineQueryHandler
 
 import core.buy_in
 import core.cash_out
@@ -167,6 +167,17 @@ async def statistics(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(message)
 
 
+async def actions(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    keyboard = [
+        [
+            InlineKeyboardButton('Получить фишки', switch_inline_query_current_chat='/buy '),
+            InlineKeyboardButton('Отдать фишки', switch_inline_query_current_chat='/quit ')
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text('Действия', reply_markup=reply_markup)
+
+
 def start_bot() -> None:
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler('start', start))
@@ -175,4 +186,5 @@ def start_bot() -> None:
     application.add_handler(CommandHandler('status', status))
     application.add_handler(CommandHandler('stop', stop))
     application.add_handler(CommandHandler('statistics', statistics))
+    application.add_handler(CommandHandler('actions', actions))
     application.run_polling()
