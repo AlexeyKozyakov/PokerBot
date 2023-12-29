@@ -1,8 +1,7 @@
 import os
 import re
 
-from telegram import Update, Message
-from telegram.constants import MessageEntityType
+from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 import core.buy_in
@@ -18,20 +17,15 @@ def __get_chat_id(update: Update) -> str:
     return str(update.effective_chat.id)
 
 
-def __find_number(text: str) -> int:
-    result = re.search(NUMBER_REGEXP, text)
-    if not result:
-        return NOT_FOUND
-    return int(result.group())
+def __find_number(args: list[str]) -> int:
+    for arg in args:
+        if re.fullmatch(NUMBER_REGEXP, arg):
+            return int(arg)
+    return NOT_FOUND
 
 
-def __get_mentioned_users(message: Message) -> list[str]:
-    result = []
-    for entity in message.entities:
-        if entity.type == MessageEntityType.MENTION:
-            mention = message.text[entity.offset + 1:entity.offset + entity.length]
-            result.append(mention)
-    return result
+def __get_mentioned_users(args: list[str]) -> list[str]:
+    return [arg[1::] for arg in args if arg.startswith('@')]
 
 
 def __format_summary(total_buy_in: dict[str, int], total_cash_out: dict[str, int], bank_size: int = 0) -> str:
@@ -61,17 +55,16 @@ async def start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text('Катка началась')
 
 
-async def buy(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = __get_chat_id(update)
     if not core.game.has_active_games(chat_id):
         await update.message.reply_text('Катка не идёт')
         return
-    message = update.message
-    amount = __find_number(message.text)
+    amount = __find_number(context.args)
     if amount == NOT_FOUND:
         await update.message.reply_text('Не указана сумма закупа')
         return
-    mentions = __get_mentioned_users(message)
+    mentions = __get_mentioned_users(context.args)
     users = mentions if mentions else [update.effective_user.username]
     core.buy_in.add_buy_in(chat_id, users, amount)
     total_buy_in = core.buy_in.calculate_total_buy_in(chat_id, users)
@@ -83,18 +76,17 @@ async def buy(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(message)
 
 
-async def quit(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def quit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = __get_chat_id(update)
     if not core.game.has_active_games(chat_id):
         await update.message.reply_text('Катка не идёт')
         return
-    message = update.message
-    mentions = __get_mentioned_users(message)
+    mentions = __get_mentioned_users(context.args)
     user = mentions[0] if mentions else update.effective_user.username
     if not core.buy_in.has_buy_in(chat_id, user):
         await update.message.reply_text(f'{user} не заходил')
         return
-    amount = __find_number(message.text)
+    amount = __find_number(context.args)
     if amount == NOT_FOUND:
         await update.message.reply_text('Не указана сумма выхода')
         return
