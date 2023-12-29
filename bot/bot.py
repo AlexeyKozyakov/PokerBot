@@ -24,8 +24,14 @@ def __find_number(args: list[str]) -> int:
     return NOT_FOUND
 
 
-def __get_mentioned_users(args: list[str]) -> list[str]:
-    return [arg[1::] for arg in args if arg.startswith('@')]
+def __get_mentioned_users(args: list[str], effective_user: str) -> list[str]:
+    print(args)
+    users = []
+    for arg in args:
+        if arg.startswith('@'):
+            user = effective_user if arg == '@me' else arg[1::]
+            users.append(user)
+    return users
 
 
 def __format_summary(total_buy_in: dict[str, int], total_cash_out: dict[str, int], bank_size: int = 0) -> str:
@@ -72,7 +78,7 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if amount == NOT_FOUND:
         await update.message.reply_text('Не указана сумма закупа')
         return
-    mentions = __get_mentioned_users(context.args)
+    mentions = __get_mentioned_users(context.args, effective_user=update.effective_user.username)
     users = mentions if mentions else [update.effective_user.username]
     core.buy_in.add_buy_in(chat_id, users, amount)
     total_buy_in = core.buy_in.calculate_total_buy_in(chat_id, users)
@@ -89,7 +95,7 @@ async def quit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not core.game.has_active_games(chat_id):
         await update.message.reply_text('Катка не идёт')
         return
-    mentions = __get_mentioned_users(context.args)
+    mentions = __get_mentioned_users(context.args, effective_user=update.effective_user.username)
     user = mentions[0] if mentions else update.effective_user.username
     if not core.buy_in.has_buy_in(chat_id, user):
         await update.message.reply_text(f'{user} не заходил')
