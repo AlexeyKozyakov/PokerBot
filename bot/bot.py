@@ -175,10 +175,14 @@ async def statistics(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def actions(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = __get_chat_id(update)
+    if not core.game.has_active_games(chat_id):
+        await update.message.reply_text('Катка не идёт')
+        return
     keyboard = [
         [
-            InlineKeyboardButton('Получить фишки', switch_inline_query_current_chat='/buy '),
-            InlineKeyboardButton('Отдать фишки', switch_inline_query_current_chat='/quit ')
+            InlineKeyboardButton('Купить фишки', switch_inline_query_current_chat='/buy '),
+            InlineKeyboardButton('Продать фишки', switch_inline_query_current_chat='/quit ')
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
