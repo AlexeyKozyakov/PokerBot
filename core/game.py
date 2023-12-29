@@ -19,12 +19,7 @@ def finish_games(chat_id: str) -> None:
     Game.update(is_finished=True).where(Game.chat_id == chat_id).execute()
 
 
-def calculate_profit(chat_id: str, user: str = None) -> int | dict[str, int]:
-    if user:
-        total_cash_out = calculate_total_cash_out(chat_id, user)
-        total_buy_in = calculate_total_buy_in(chat_id, [user])[user]
-        return total_cash_out - total_buy_in
-    game = Game.get(chat_id=chat_id, is_finished=False)
+def __calculate_total_profit(games: list[Game]) -> dict[str, int]:
     profits = {}
 
     def update_profit(profit_user, diff):
@@ -32,12 +27,27 @@ def calculate_profit(chat_id: str, user: str = None) -> int | dict[str, int]:
             profits[profit_user] = 0
         profits[profit_user] += diff
 
-    for cash_out in game.cash_outs:
-        update_profit(cash_out.user, cash_out.amount)
-    for buy_in in game.buy_ins:
-        update_profit(buy_in.user, -buy_in.amount)
+    for game in games:
+        for cash_out in game.cash_outs:
+            update_profit(cash_out.user, cash_out.amount)
+        for buy_in in game.buy_ins:
+            update_profit(buy_in.user, -buy_in.amount)
 
     return profits
+
+
+def calculate_profit(chat_id: str, user: str = None) -> int | dict[str, int]:
+    if user:
+        total_cash_out = calculate_total_cash_out(chat_id, user)
+        total_buy_in = calculate_total_buy_in(chat_id, [user])[user]
+        return total_cash_out - total_buy_in
+    game = Game.get(chat_id=chat_id, is_finished=False)
+    return __calculate_total_profit([game])
+
+
+def calculate_total_profit_in_all_finished_games(chat_id: str) -> dict[str, int]:
+    games = Game.select().where((Game.chat_id == chat_id) & Game.is_finished)
+    return __calculate_total_profit(games)
 
 
 def calculate_active_players(chat_id: str) -> list[str]:

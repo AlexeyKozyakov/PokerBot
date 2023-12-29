@@ -46,6 +46,14 @@ def __format_summary(total_buy_in: dict[str, int], total_cash_out: dict[str, int
     return message
 
 
+def __format_profit(profits: dict[str, int]):
+    message = '\nПрофит:\n'
+    profits_sorted = sorted(profits.items(), key=lambda item: item[1], reverse=True)
+    for user, profit in profits_sorted:
+        message += f'{user} {profit}\n'
+    return message
+
+
 async def start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = __get_chat_id(update)
     if core.game.has_active_games(chat_id):
@@ -139,16 +147,23 @@ async def stop(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     total_cash_out = core.cash_out.calculate_total_cash_out(chat_id)
     message = 'Катка закончилась, банк сходится\n'
     message += __format_summary(total_buy_in, total_cash_out)
-    message += '\nПрофит:\n'
     profits = core.game.calculate_profit(chat_id)
-    profits_sorted = sorted(profits.items(), key=lambda item: item[1], reverse=True)
-    for user, profit in profits_sorted:
-        message += f'{user} {profit}\n'
+    message += __format_profit(profits)
     message += '\nПереводы:\n'
     money_transfers = core.game.calculate_money_transfers(chat_id)
     for transfer in money_transfers:
         message += f'{transfer["from"]} -> {transfer["to"]}: {transfer["amount"]}\n'
     core.game.finish_games(chat_id)
+    await update.message.reply_text(message)
+
+
+async def statistics(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = __get_chat_id(update)
+    total_profit = core.game.calculate_total_profit_in_all_finished_games(chat_id)
+    if not total_profit:
+        await update.message.reply_text('Нет завершенных игр')
+        return
+    message = __format_profit(total_profit)
     await update.message.reply_text(message)
 
 
@@ -159,4 +174,5 @@ def start_bot() -> None:
     application.add_handler(CommandHandler('quit', quit))
     application.add_handler(CommandHandler('status', status))
     application.add_handler(CommandHandler('stop', stop))
+    application.add_handler(CommandHandler('statistics', statistics))
     application.run_polling()

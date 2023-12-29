@@ -1,7 +1,7 @@
 from core.buy_in import add_buy_in
 from core.cash_out import add_cash_out
 from core.game import start_game, has_active_games, finish_games, calculate_profit, calculate_active_players, \
-    calculate_bank_size, calculate_money_transfers
+    calculate_bank_size, calculate_money_transfers, calculate_total_profit_in_all_finished_games
 from core.models import Game, CashOut, BuyIn
 from tests.base import BaseTestCase
 
@@ -38,6 +38,24 @@ class GamesTestCase(BaseTestCase):
                 'user3': 250
             },
             calculate_profit(CHAT_ID_1)
+        )
+
+    def test_calculate_total_profit_for_all_finished_games(self):
+        finish_games(CHAT_ID_1)
+        start_game(CHAT_ID_1)
+        add_buy_in(CHAT_ID_1, ['user1', 'user2', 'user3'], 500)
+        add_buy_in(CHAT_ID_1, ['user2', 'user3'], 1000)
+        add_cash_out(CHAT_ID_1, 'user1', 2000)
+        add_cash_out(CHAT_ID_1, 'user2', 500)
+        add_cash_out(CHAT_ID_1, 'user3', 1000)
+        finish_games(CHAT_ID_1)
+        self.assertEqual(
+            {
+                'user1': 0,
+                'user2': 250,
+                'user3': -250
+            },
+            calculate_total_profit_in_all_finished_games(CHAT_ID_1),
         )
 
     def test_calculate_active_players(self):
