@@ -2,7 +2,8 @@ import os
 import re
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, InlineQueryHandler
+from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, InlineQueryHandler, filters, \
+    MessageHandler
 
 import core.buy_in
 import core.cash_out
@@ -184,6 +185,22 @@ async def actions(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text('Действия', reply_markup=reply_markup)
 
 
+async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    bot_username = context.bot.username
+    message_text = update.message.text
+    handle_as_command = message_text.startswith(f'@{bot_username} /')
+    if not handle_as_command:
+        return
+    words = message_text.split(' ')
+    command = words[1][1::]
+    args = words[2::]
+    context.args = args
+    if command == 'buy':
+        await buy(update, context)
+    elif command == 'quit':
+        await quit(update, context)
+
+
 def start_bot() -> None:
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler('start', start))
@@ -193,4 +210,5 @@ def start_bot() -> None:
     application.add_handler(CommandHandler('stop', stop))
     application.add_handler(CommandHandler('statistics', statistics))
     application.add_handler(CommandHandler('actions', actions))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, process_message))
     application.run_polling()
