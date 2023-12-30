@@ -2,7 +2,7 @@ import os
 import re
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, InlineQueryHandler, filters, \
+from telegram.ext import Application, CommandHandler, ContextTypes, filters, \
     MessageHandler
 
 import core.buy_in
