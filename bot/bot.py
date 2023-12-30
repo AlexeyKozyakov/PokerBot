@@ -26,7 +26,6 @@ def __find_number(args: list[str]) -> int:
 
 
 def __get_mentioned_users(args: list[str], effective_user: str) -> list[str]:
-    print(args)
     users = []
     for arg in args:
         if arg.startswith('@'):
