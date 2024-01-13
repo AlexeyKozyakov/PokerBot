@@ -1,7 +1,8 @@
-from core.buy_in import add_buy_in
-from core.cash_out import add_cash_out
+from core.buy_in import add_buy_in, calculate_total_buy_in
+from core.cash_out import add_cash_out, calculate_total_cash_out
 from core.game import start_game, has_active_games, finish_games, calculate_profit, calculate_active_players, \
-    calculate_bank_size, calculate_money_transfers, calculate_total_profit_in_all_finished_games
+    calculate_bank_size, calculate_money_transfers, calculate_total_profit_in_all_finished_games, has_actions, \
+    undo_last_action
 from core.models import Game, CashOut, BuyIn
 from tests.base import BaseTestCase
 
@@ -98,6 +99,36 @@ class GamesTestCase(BaseTestCase):
                 }
             ],
             calculate_money_transfers(CHAT_ID_1)
+        )
+
+    def test_has_actions(self):
+        self.assertTrue(has_actions(CHAT_ID_1))
+
+    def test_has_no_actions(self):
+        start_game(CHAT_ID_2)
+        self.assertFalse(has_actions(CHAT_ID_2))
+
+    def test_undo_last_cash_out(self):
+        undo_last_action(CHAT_ID_1)
+        self.assertEqual(
+            {
+                'user1': 0,
+                'user2': 1750
+            },
+            calculate_total_cash_out(CHAT_ID_1)
+        )
+
+    def test_undo_last_buy_in(self):
+        start_game(CHAT_ID_2)
+        add_buy_in(CHAT_ID_2, ['user1', 'user2'], 1000)
+        add_buy_in(CHAT_ID_2, ['user2'], 500)
+        undo_last_action(CHAT_ID_2)
+        self.assertEqual(
+            {
+                'user1': 1000,
+                'user2': 1000
+            },
+            calculate_total_buy_in(CHAT_ID_2),
         )
 
     @staticmethod

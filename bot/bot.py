@@ -112,6 +112,22 @@ async def quit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(message)
 
 
+async def undo(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = __get_chat_id(update)
+    if not core.game.has_active_games(chat_id):
+        await update.message.reply_text('Катка не идёт')
+        return
+    if not core.game.has_actions(chat_id):
+        await update.message.reply_text('Никто не заходил')
+        return
+    result = core.game.undo_last_action(chat_id)
+    message = f"{'Закуп' if result['type'] == 'buy_in' else 'Выход'} отменён:\n"
+    message += f"{result['user']} {result['amount']}\n"
+    bank_size = core.game.calculate_bank_size(chat_id)
+    message += f'\nБанк {bank_size}'
+    await update.message.reply_text(message)
+
+
 async def status(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = __get_chat_id(update)
     if not core.game.has_active_games(chat_id):
@@ -209,6 +225,7 @@ def start_bot() -> None:
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('buy', buy))
     application.add_handler(CommandHandler('quit', quit))
+    application.add_handler(CommandHandler('undo', undo))
     application.add_handler(CommandHandler('status', status))
     application.add_handler(CommandHandler('stop', stop))
     application.add_handler(CommandHandler('statistics', statistics))

@@ -4,7 +4,7 @@ import datetime
 
 from core.buy_in import calculate_total_buy_in
 from core.cash_out import calculate_total_cash_out
-from core.models import Game
+from core.models import Game, BuyIn, CashOut
 
 
 def has_active_games(chat_id: str) -> bool:
@@ -104,3 +104,36 @@ def calculate_money_transfers(chat_id: str) -> list[dict]:
             'amount': transfer_amount
         }
         transfers.append(transfer)
+
+
+def has_actions(chat_id: str) -> bool:
+    game = Game.get(chat_id=chat_id, is_finished=False)
+    return BuyIn.select().where(BuyIn.game == game).exists() or CashOut.select().where(CashOut.game == game).exists()
+
+
+def undo_last_action(chat_id: str) -> dict[str, str | int]:
+    game = Game.get(chat_id=chat_id, is_finished=False)
+    last_buy_in = (BuyIn.select().where(BuyIn.game == game).order_by(BuyIn.timestamp.desc()).limit(1)
+                   .get_or_none())
+    last_cash_out = (CashOut.select().where(CashOut.game == game).order_by(CashOut.timestamp.desc()).limit(1)
+                     .get_or_none())
+
+    def format_result(model: BuyIn | CashOut) -> dict[str, str | int]:
+        return {
+            'type': 'buy_in' if isinstance(model, BuyIn) else 'cash_out',
+            'user': model.user,
+            'amount': model.amount
+        }
+
+    if not last_buy_in:
+        last_cash_out.delete_instance()
+        return format_result(last_cash_out)
+    if not last_cash_out:
+        last_buy_in.delete_instance()
+        return format_result(last_buy_in)
+    if last_cash_out.timestamp > last_buy_in.timestamp:
+        last_cash_out.delete_instance()
+        return format_result(last_cash_out)
+    else:
+        last_buy_in.delete_instance()
+        return format_result(last_buy_in)
